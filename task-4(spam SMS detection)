@@ -1,0 +1,70 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
+
+# Step 1: Load the dataset (replace with your actual dataset path)
+# Assuming the dataset is in CSV format with 'message' and 'label' columns
+data = pd.read_csv('spam_sms.csv')  # Change the path to your file
+
+# Display first few rows to understand the data
+print(data.head())
+
+# Step 2: Preprocessing
+# Clean the data (e.g., remove non-alphabetic characters)
+data['message'] = data['message'].str.replace(r'[^a-zA-Z\s]', '', regex=True)
+
+# Step 3: Split data into features (X) and target (y)
+X = data['message']  # Text data
+y = data['label']    # Target variable (1 for spam, 0 for ham)
+
+# Step 4: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 5: Convert text into numerical features using TF-IDF
+tfidf = TfidfVectorizer(stop_words='english', max_features=5000)  # Use top 5000 features
+X_train_tfidf = tfidf.fit_transform(X_train)
+X_test_tfidf = tfidf.transform(X_test)
+
+# Step 6: Model Selection and Training
+# Naive Bayes
+nb_model = MultinomialNB()
+nb_model.fit(X_train_tfidf, y_train)
+
+# Logistic Regression
+log_reg_model = LogisticRegression()
+log_reg_model.fit(X_train_tfidf, y_train)
+
+# Support Vector Machine (SVM)
+svm_model = SVC(probability=True)  # Set probability=True for ROC-AUC calculation
+svm_model.fit(X_train_tfidf, y_train)
+
+# Step 7: Model Evaluation
+
+# Predicting on the test set
+y_pred_nb = nb_model.predict(X_test_tfidf)
+y_pred_lr = log_reg_model.predict(X_test_tfidf)
+y_pred_svm = svm_model.predict(X_test_tfidf)
+
+# Step 8: Evaluation Metrics
+
+# Naive Bayes Evaluation
+print("Naive Bayes Classification Report:")
+print(classification_report(y_test, y_pred_nb))
+print("Naive Bayes Accuracy:", accuracy_score(y_test, y_pred_nb))
+print("Naive Bayes ROC-AUC:", roc_auc_score(y_test, nb_model.predict_proba(X_test_tfidf)[:, 1]))
+
+# Logistic Regression Evaluation
+print("\nLogistic Regression Classification Report:")
+print(classification_report(y_test, y_pred_lr))
+print("Logistic Regression Accuracy:", accuracy_score(y_test, y_pred_lr))
+print("Logistic Regression ROC-AUC:", roc_auc_score(y_test, log_reg_model.predict_proba(X_test_tfidf)[:, 1]))
+
+# Support Vector Machine Evaluation
+print("\nSupport Vector Machine Classification Report:")
+print(classification_report(y_test, y_pred_svm))
+print("SVM Accuracy:", accuracy_score(y_test, y_pred_svm))
+print("SVM ROC-AUC:", roc_auc_score(y_test, svm_model.predict_proba(X_test_tfidf)[:, 1]))
